@@ -1,3 +1,12 @@
-from .api_models import ApiError, ApiResponse
+"""Schemas module initialization."""
+from .api_models import ApiResponse, ApiError
+from .file_schemas import FileUploadResponse, TableInfo, ColumnInfo, TableDataResponse
 
-__all__ = ["ApiError", "ApiResponse"]
+__all__ = [
+    "ApiResponse",
+    "ApiError", 
+    "FileUploadResponse",
+    "TableInfo",
+    "ColumnInfo",
+    "TableDataResponse",
+]
