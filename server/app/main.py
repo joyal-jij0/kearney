@@ -4,8 +4,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from .api import api_router
 
 app = FastAPI(
-    title="File Upload API",
-    description="API for uploading CSV/Excel files and storing data in SQLite",
+    title="Data Analysis API",
+    description="API for uploading CSV/Excel files, storing data in SQLite, and querying with AI",
     version="1.0.0"
 )
 
@@ -26,9 +26,13 @@ app.include_router(api_router, prefix="/api")
 async def root():
     """Root endpoint."""
     return {
-        "message": "File Upload API",
+        "message": "Data Analysis API",
         "version": "1.0.0",
-        "docs": "/docs"
+        "docs": "/docs",
+        "endpoints": {
+            "upload": "/api/v1/files/upload",
+            "chat": "/api/v1/chat/",
+        }
     }
 
 
