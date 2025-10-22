@@ -1,5 +1,6 @@
 """AI service for querying database using OpenAI function calling."""
 import json
+from functools import lru_cache
 from typing import Dict, Any, List, Optional
 from openai import OpenAI
 from app.config import get_settings
@@ -26,10 +27,10 @@ class AIService:
             }
         )
         self.default_model = settings.model_name
-        
+
         # Initialize database tools
         self.db_tools = get_database_tools()
-        
+
         # Load tool definitions from tool_defs module
         self.tools = get_ai_tools()
 
@@ -78,7 +79,7 @@ class AIService:
         messages.append({"role": "user", "content": question})
 
         function_calls_made = []
-        max_iterations = 5  # Reduced from 7 - we expect fewer calls with get_database_context
+        max_iterations = 7
         iteration = 0
 
         while iteration < max_iterations:
@@ -152,22 +153,16 @@ class AIService:
             "model": model
         }
 
+# Singleton AI service accessor (lazy-loaded via cache)
 
-# Singleton AI service instance (lazy-loaded)
-_ai_service: Optional[AIService] = None
-
-
+@lru_cache(maxsize=1)
 def get_ai_service() -> AIService:
     """Get or create AI service instance.
     
     Returns:
         AIService instance
     """
-    global _ai_service
-    if _ai_service is None:
-        _ai_service = AIService()
-    return _ai_service
-
+    return AIService()
 
 # For backward compatibility
 ai_service = get_ai_service()

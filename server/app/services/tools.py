@@ -1,5 +1,7 @@
 """Tool implementations for AI service database operations."""
 from typing import Dict, Any, List
+import sqlite3
+from functools import lru_cache
 from app.db import db
 
 
@@ -30,10 +32,10 @@ class DatabaseTools:
         try:
             conn = self.db.get_connection()
             cursor = conn.cursor()
-            
+
             # Get all tables
             tables = self.db.get_all_tables()
-            
+
             database_context = {
                 "success": True,
                 "table_count": len(tables),
@@ -74,9 +76,8 @@ class DatabaseTools:
 
                 database_context["tables"].append(table_info)
 
-            return database_context
-        except Exception as e:
-            return {"error": str(e)}
+        except sqlite3.Error as error:
+            return {"error": str(error)}
 
     def get_table_schema(self, table_name: str) -> Dict[str, Any]:
         """Get schema information for a table.
@@ -107,8 +108,8 @@ class DatabaseTools:
                 ]
             }
             return schema
-        except Exception as e:
-            return {"error": str(e)}
+        except sqlite3.Error as error:
+            return {"error": str(error)}
 
     def execute_select_query(self, query: str) -> Dict[str, Any]:
         """Execute a SELECT query on the database.
@@ -146,8 +147,8 @@ class DatabaseTools:
                 "columns": columns,
                 "data": results
             }
-        except Exception as e:
-            return {"error": str(e)}
+        except sqlite3.Error as error:
+            return {"error": str(error)}
 
     def get_table_sample(self, table_name: str, limit: int = 5) -> Dict[str, Any]:
         """Get a sample of rows from a table.
@@ -175,8 +176,8 @@ class DatabaseTools:
                 "columns": columns,
                 "data": results
             }
-        except Exception as e:
-            return {"error": str(e)}
+        except sqlite3.Error as error:
+            return {"error": str(error)}
 
     def get_table_statistics(self, table_name: str) -> Dict[str, Any]:
         """Get statistics about a table.
@@ -209,8 +210,8 @@ class DatabaseTools:
                     for col in columns
                 ]
             }
-        except Exception as e:
-            return {"error": str(e)}
+        except sqlite3.Error as error:
+            return {"error": str(error)}
 
     def execute_function(self, function_name: str, arguments: Dict[str, Any]) -> Any:
         """Execute a function based on name and arguments.
@@ -237,18 +238,11 @@ class DatabaseTools:
         else:
             return {"error": f"Unknown function: {function_name}"}
 
-
-# Singleton instance
-_database_tools: DatabaseTools | None = None
-
-
+@lru_cache(maxsize=1)
 def get_database_tools() -> DatabaseTools:
     """Get or create database tools instance.
     
     Returns:
         DatabaseTools instance
     """
-    global _database_tools
-    if _database_tools is None:
-        _database_tools = DatabaseTools()
-    return _database_tools
+    return DatabaseTools()
