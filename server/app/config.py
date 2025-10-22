@@ -1,5 +1,4 @@
 """Configuration module for environment variables."""
-from typing import Optional
 from pydantic_settings import BaseSettings
 from pydantic import Field
 
@@ -46,17 +45,14 @@ class Settings(BaseSettings):
         case_sensitive = False
 
 
-# Singleton settings instance
-_settings: Optional[Settings] = None
+# Module-level settings instance (loaded once at import)
+settings = Settings()
 
 
 def get_settings() -> Settings:
-    """Get or create settings instance.
+    """Get settings instance.
     
     Returns:
         Settings instance
     """
-    global _settings
-    if _settings is None:
-        _settings = Settings()
-    return _settings
+    return settings
