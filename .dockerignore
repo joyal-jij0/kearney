@@ -1,0 +1,22 @@
+# Common
+.git
+.gitignore
+*.md
+.env
+.env.*
+
+# Client
+client/node_modules
+client/dist
+client/.next
+client/.cache
+
+# Server
+server/__pycache__
+server/**/__pycache__
+server/.pytest_cache
+server/.venv
+server/venv
+server/*.egg-info
+server/data/*.db
+server/data/*.sqlite
