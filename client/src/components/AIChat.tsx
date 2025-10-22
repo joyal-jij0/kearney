@@ -4,13 +4,16 @@ import { ChatInterface } from "@/components/ChatInterface";
 
 export function AIChat() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [tableName, setTableName] = useState<string | null>(null);
 
-  const handleFileSelect = (file: File) => {
+  const handleFileSelect = (file: File, tableNameFromBackend: string) => {
     setSelectedFile(file);
+    setTableName(tableNameFromBackend);
   };
 
   const handleReset = () => {
     setSelectedFile(null);
+    setTableName(null);
   };
 
   return (
@@ -20,7 +23,11 @@ export function AIChat() {
           <FileUploadDropZone onFileSelect={handleFileSelect} />
         </div>
       ) : (
-        <ChatInterface fileName={selectedFile.name} onReset={handleReset} />
+        <ChatInterface
+          fileName={selectedFile.name}
+          tableName={tableName || ""}
+          onReset={handleReset}
+        />
       )}
     </div>
   );

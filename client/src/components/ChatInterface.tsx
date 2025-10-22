@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send, Bot, User, Loader } from "lucide-react";
+import { Send, Bot, User, Loader, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { sendChatMessage } from "@/api/api";
 
 interface Message {
   id: string;
@@ -13,10 +14,15 @@ interface Message {
 
 interface ChatInterfaceProps {
   fileName: string;
+  tableName: string;
   onReset: () => void;
 }
 
-export function ChatInterface({ fileName, onReset }: ChatInterfaceProps) {
+export function ChatInterface({
+  fileName,
+  tableName,
+  onReset,
+}: ChatInterfaceProps) {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
@@ -27,6 +33,7 @@ export function ChatInterface({ fileName, onReset }: ChatInterfaceProps) {
   ]);
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -37,7 +44,7 @@ export function ChatInterface({ fileName, onReset }: ChatInterfaceProps) {
     scrollToBottom();
   }, [messages]);
 
-  const handleSendMessage = (e: React.FormEvent) => {
+  const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!inputValue.trim()) return;
@@ -53,26 +60,35 @@ export function ChatInterface({ fileName, onReset }: ChatInterfaceProps) {
     setMessages((prev) => [...prev, userMessage]);
     setInputValue("");
     setIsLoading(true);
+    setError(null);
 
-    // Simulate AI response delay
-    setTimeout(() => {
+    try {
+      const response = await sendChatMessage(userMessage.content, tableName);
+
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
-        content: `This is a dummy response to: "${userMessage.content}". 
-        
-In production, this would analyze your "${fileName}" file and provide relevant insights. You can ask me about:
-- Summary statistics of your data
-- Specific columns or rows
-- Data analysis and trends
-- Comparisons and correlations
-- Any other questions about your dataset`,
+        content: response.response,
         timestamp: new Date(),
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to get response from AI";
+      setError(errorMessage);
+
+      const errorAssistantMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        content: `Sorry, I encountered an error: ${errorMessage}. Please try again.`,
+        timestamp: new Date(),
+      };
+
+      setMessages((prev) => [...prev, errorAssistantMessage]);
+    } finally {
       setIsLoading(false);
-    }, 1500);
+    }
   };
 
   return (
