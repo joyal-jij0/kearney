@@ -3,7 +3,7 @@ version: "3.8"
 services:
   # Frontend service using Bun - Production
   client:
-    image: ${REGISTRY}/kearney/client:latest
+    image: ${REGISTRY:-ghcr.io}/joyal-jij0/kearney/client:latest
     ports:
       - "3000:3000"
     restart: unless-stopped
@@ -30,7 +30,7 @@ services:
 
   # Backend service using Python/FastAPI - Production
   server:
-    image: ${REGISTRY}/kearney/server:latest
+    image: ${REGISTRY:-ghcr.io}/joyal-jij0/kearney/server:latest
     ports:
       - "8000:8000"
     volumes:
