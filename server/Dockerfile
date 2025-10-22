@@ -1,16 +1,13 @@
-# Backend Dockerfile using Python
-FROM python:3.11-slim
+# Backend Dockerfile using Python with uv
+FROM ghcr.io/astral-sh/uv:python3.11-bookworm-slim
 
 WORKDIR /app
 
-# Install uv for faster dependency installation (optional but recommended)
-RUN pip install --no-cache-dir uv
-
 # Copy dependency files
-COPY pyproject.toml ./
+COPY pyproject.toml uv.lock ./
 
-# Install dependencies
-RUN uv pip install --system --no-cache -r pyproject.toml
+# Install dependencies using uv sync
+RUN uv sync --frozen --no-dev
 
 # Copy application code
 COPY app ./app
@@ -21,5 +18,5 @@ RUN mkdir -p data
 # Expose port
 EXPOSE 8000
 
-# Run the application
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Run the application using uv run
+CMD ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
