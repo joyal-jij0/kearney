@@ -18,6 +18,31 @@ interface ChatInterfaceProps {
   onReset: () => void;
 }
 
+// Helper function to parse markdown-style bold text
+function parseMarkdownBold(text: string) {
+  const parts: Array<{ text: string; bold: boolean }> = [];
+  const regex = /\*\*(.*?)\*\*/g;
+  let lastIndex = 0;
+  let match;
+
+  while ((match = regex.exec(text)) !== null) {
+    // Add text before the bold part
+    if (match.index > lastIndex) {
+      parts.push({ text: text.slice(lastIndex, match.index), bold: false });
+    }
+    // Add the bold part (without the ** markers)
+    parts.push({ text: match[1] || "", bold: true });
+    lastIndex = regex.lastIndex;
+  }
+
+  // Add remaining text after the last match
+  if (lastIndex < text.length) {
+    parts.push({ text: text.slice(lastIndex), bold: false });
+  }
+
+  return parts.length > 0 ? parts : [{ text, bold: false }];
+}
+
 export function ChatInterface({
   fileName,
   tableName,
@@ -153,7 +178,13 @@ export function ChatInterface({
                   )}
                 >
                   <p className="text-sm whitespace-pre-wrap">
-                    {message.content}
+                    {parseMarkdownBold(message.content).map((part, index) =>
+                      part.bold ? (
+                        <strong key={index}>{part.text}</strong>
+                      ) : (
+                        <span key={index}>{part.text}</span>
+                      )
+                    )}
                   </p>
                 </div>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
