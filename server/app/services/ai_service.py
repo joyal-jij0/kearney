@@ -31,8 +31,31 @@ class AIService:
             {
                 "type": "function",
                 "function": {
+                    "name": "get_database_context",
+                    "description": "Get complete database context including all tables, their schemas, row counts, and sample data in ONE call. Use this FIRST before any query to understand the entire database structure efficiently.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "include_samples": {
+                                "type": "boolean",
+                                "description": "Whether to include sample rows from each table (default: false)",
+                                "default": False
+                            },
+                            "sample_limit": {
+                                "type": "integer",
+                                "description": "Number of sample rows per table if include_samples is true (default: 3)",
+                                "default": 3
+                            }
+                        },
+                        "required": []
+                    }
+                }
+            },
+            {
+                "type": "function",
+                "function": {
                     "name": "list_tables",
-                    "description": "Get a list of all available tables in the database. Use this to see what data is available.",
+                    "description": "Get a list of all available tables in the database. PREFER using get_database_context instead for better performance.",
                     "parameters": {
                         "type": "object",
                         "properties": {},
@@ -44,7 +67,7 @@ class AIService:
                 "type": "function",
                 "function": {
                     "name": "get_table_schema",
-                    "description": "Get the schema (structure) of a specific table including column names and types. Use this to understand the structure of a table before querying it.",
+                    "description": "Get the schema (structure) of a specific table including column names and types. PREFER using get_database_context instead for better performance.",
                     "parameters": {
                         "type": "object",
                         "properties": {
@@ -61,7 +84,7 @@ class AIService:
                 "type": "function",
                 "function": {
                     "name": "execute_select_query",
-                    "description": "Execute a SELECT query on the database. Only SELECT queries are allowed (read-only). Use this to retrieve data based on the user's question.",
+                    "description": "Execute a SELECT query on the database to answer the user's question. Only SELECT queries are allowed (read-only). This should typically be your FINAL step after understanding the database structure.",
                     "parameters": {
                         "type": "object",
                         "properties": {
@@ -118,6 +141,70 @@ class AIService:
     def list_tables(self) -> List[str]:
         """Get list of all tables in the database."""
         return self.db.get_all_tables()
+    
+    def get_database_context(self, include_samples: bool = False, sample_limit: int = 3) -> Dict[str, Any]:
+        """Get comprehensive database context in a single call.
+        
+        This function returns all tables with their schemas, row counts, and optionally sample data.
+        This is much more efficient than making multiple separate calls.
+        
+        Args:
+            include_samples: Whether to include sample rows from each table
+            sample_limit: Number of sample rows per table
+            
+        Returns:
+            Dictionary with complete database context
+        """
+        try:
+            conn = self.db.get_connection()
+            cursor = conn.cursor()
+            
+            # Get all tables
+            tables = self.db.get_all_tables()
+            
+            database_context = {
+                "success": True,
+                "table_count": len(tables),
+                "tables": []
+            }
+            
+            for table_name in tables:
+                # Get schema
+                cursor.execute(f"PRAGMA table_info({table_name})")
+                columns = cursor.fetchall()
+                
+                # Get row count
+                cursor.execute(f"SELECT COUNT(*) FROM {table_name}")
+                row_count = cursor.fetchone()[0]
+                
+                table_info = {
+                    "name": table_name,
+                    "row_count": row_count,
+                    "column_count": len(columns),
+                    "columns": [
+                        {
+                            "name": col[1],
+                            "type": col[2],
+                            "not_null": bool(col[3]),
+                            "default_value": col[4],
+                            "primary_key": bool(col[5])
+                        }
+                        for col in columns
+                    ]
+                }
+                
+                # Optionally include sample data
+                if include_samples and row_count > 0:
+                    cursor.execute(f"SELECT * FROM {table_name} LIMIT ?", (sample_limit,))
+                    rows = cursor.fetchall()
+                    column_names = [description[0] for description in cursor.description]
+                    table_info["sample_data"] = [dict(zip(column_names, row)) for row in rows]
+                
+                database_context["tables"].append(table_info)
+            
+            return database_context
+        except Exception as e:
+            return {"error": str(e)}
     
     def get_table_schema(self, table_name: str) -> Dict[str, Any]:
         """Get schema information for a table.
@@ -263,7 +350,9 @@ class AIService:
         Returns:
             Function result
         """
-        if function_name == "list_tables":
+        if function_name == "get_database_context":
+            return self.get_database_context(**arguments)
+        elif function_name == "list_tables":
             return self.list_tables()
         elif function_name == "get_table_schema":
             return self.get_table_schema(**arguments)
@@ -301,26 +390,32 @@ class AIService:
             system_message = {
                 "role": "system",
                 "content": (
-                    "You are a helpful data analyst assistant. You have access to a SQLite database "
-                    "with various tables containing user data. Your job is to help users query and "
-                    "analyze their data by using the available functions to explore tables and run queries. "
-                    "Always start by checking what tables are available, then understand the schema, "
-                    "and finally construct appropriate queries to answer the user's questions. "
-                    "Provide clear, concise answers and explain the data you find."
+                    "You are a helpful data analyst assistant with access to a SQLite database. "
+                    "Your job is to help users query and analyze their data efficiently.\n\n"
+                    "IMPORTANT GUIDELINES FOR EFFICIENCY:\n"
+                    "1. ALWAYS use 'get_database_context' as your FIRST step to understand the entire database structure in one call\n"
+                    "2. After getting the context, you should usually be able to construct the SQL query directly\n"
+                    "3. Only use other tools (list_tables, get_table_schema, get_table_sample) if you need additional specific information\n"
+                    "4. For simple queries, aim to use only 2 function calls total: get_database_context + execute_select_query\n\n"
+                    "When constructing queries:\n"
+                    "- Use appropriate SQL functions (SUM, COUNT, AVG, etc.) for aggregations\n"
+                    "- Use WHERE clauses to filter data efficiently\n"
+                    "- Use LIKE with wildcards for pattern matching (e.g., '%sugar%' to find items containing 'sugar')\n"
+                    "- Return clear, concise answers and explain the results you find"
                 )
             }
             messages.insert(0, system_message)
         
         # Add user's question
         messages.append({"role": "user", "content": question})
-        
+
         function_calls_made = []
-        max_iterations = 7  # Allow more function calls before final response
+        max_iterations = 5  # Reduced from 7 - we expect fewer calls with get_database_context
         iteration = 0
-        
+
         while iteration < max_iterations:
             iteration += 1
-            
+
             # Call OpenAI API
             response = self.client.chat.completions.create(
                 model=model,
