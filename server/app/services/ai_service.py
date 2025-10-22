@@ -1,11 +1,10 @@
 """AI service for querying database using OpenAI function calling."""
 import json
-from functools import lru_cache
 from typing import Dict, Any, List, Optional
 from openai import OpenAI
 from app.config import get_settings
 from app.services.tool_defs import get_ai_tools
-from app.services.tools import get_database_tools
+from app.services.tools import DatabaseTools
 from app.prompts.prompts import get_database_analyst_prompt
 
 
@@ -29,7 +28,7 @@ class AIService:
         self.default_model = settings.model_name
 
         # Initialize database tools
-        self.db_tools = get_database_tools()
+        self.db_tools = DatabaseTools()
 
         # Load tool definitions from tool_defs module
         self.tools = get_ai_tools()
@@ -153,16 +152,5 @@ class AIService:
             "model": model
         }
 
-# Singleton AI service accessor (lazy-loaded via cache)
-
-@lru_cache(maxsize=1)
-def get_ai_service() -> AIService:
-    """Get or create AI service instance.
-    
-    Returns:
-        AIService instance
-    """
-    return AIService()
-
-# For backward compatibility
-ai_service = get_ai_service()
+# Initialize AI service at module level for eager loading
+ai_service = AIService()
