@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "bun --hot src/index.tsx",
-    "start": "NODE_ENV=production bun src/index.tsx",
+    "start": "bunx serve -s dist -l 3000",
     "build": "bun run build.ts"
   },
   "dependencies": {

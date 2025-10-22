@@ -3,9 +3,7 @@ version: "3.8"
 services:
   # Frontend service using Bun - Production
   client:
-    build:
-      context: ./client
-      target: production
+    image: ${REGISTRY}/kearney/client:latest
     ports:
       - "3000:3000"
     restart: unless-stopped
@@ -27,11 +25,12 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+    networks:
+      - kearney-network
 
   # Backend service using Python/FastAPI - Production
   server:
-    build:
-      context: ./server
+    image: ${REGISTRY}/kearney/server:latest
     ports:
       - "8000:8000"
     volumes:
@@ -40,7 +39,6 @@ services:
       - ./server/.env
     environment:
       - PYTHONUNBUFFERED=1
-    command: uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/docs"]
@@ -48,6 +46,12 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+    networks:
+      - kearney-network
+
+networks:
+  kearney-network:
+    driver: bridge
 
 volumes:
   data:
