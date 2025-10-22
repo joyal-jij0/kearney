@@ -6,7 +6,7 @@ from pathlib import Path
 
 class Database:
     """SQLite database manager."""
-    
+
     def __init__(self, db_path: str = "data/uploads.db"):
         """Initialize database connection.
         
@@ -16,12 +16,12 @@ class Database:
         self.db_path = db_path
         self._ensure_db_directory()
         self._connection: Optional[sqlite3.Connection] = None
-    
+
     def _ensure_db_directory(self):
         """Ensure the database directory exists."""
         db_dir = Path(self.db_path).parent
         db_dir.mkdir(parents=True, exist_ok=True)
-    
+
     def get_connection(self) -> sqlite3.Connection:
         """Get or create database connection.
         
@@ -32,13 +32,13 @@ class Database:
             self._connection = sqlite3.connect(self.db_path, check_same_thread=False)
             self._connection.row_factory = sqlite3.Row
         return self._connection
-    
+
     def close(self):
         """Close database connection."""
         if self._connection:
             self._connection.close()
             self._connection = None
-    
+
     def execute_query(self, query: str, params: tuple = ()):
         """Execute a query and return results.
         
@@ -54,7 +54,7 @@ class Database:
         cursor.execute(query, params)
         conn.commit()
         return cursor
-    
+
     def table_exists(self, table_name: str) -> bool:
         """Check if a table exists in the database.
         
@@ -71,7 +71,7 @@ class Database:
             (table_name,)
         )
         return cursor.fetchone() is not None
-    
+
     def get_all_tables(self) -> list[str]:
         """Get all table names in the database.
         
