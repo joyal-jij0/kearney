@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { FileUploadDropZone } from "@/components/FileUploadDropZone";
 import { ChatInterface } from "@/components/ChatInterface";
 
