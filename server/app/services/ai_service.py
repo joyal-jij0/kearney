@@ -315,7 +315,7 @@ class AIService:
         messages.append({"role": "user", "content": question})
         
         function_calls_made = []
-        max_iterations = 5  # Prevent infinite loops
+        max_iterations = 7  # Allow more function calls before final response
         iteration = 0
         
         while iteration < max_iterations:
